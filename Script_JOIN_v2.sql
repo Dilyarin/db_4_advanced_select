@@ -14,10 +14,10 @@ LEFT JOIN tracks t ON a.id = t.album_id
 group BY a.id;
 
 --все исполнители, которые не выпустили альбомы в 2020 году;
-SELECT DISTINCT nickname FROM performers_albums pa
-FULL JOIN albums a ON a.id = pa.album_id 
-FULL JOIN performers p ON p.id = pa.performer_id 
-WHERE album_release_year ISNULL OR album_release_year NOT BETWEEN '01.01.2020' and '31.12.2020';
+SELECT DISTINCT nickname FROM performers p
+WHERE p.id <> (SELECT p.id FROM performers p
+	LEFT JOIN performers_albums pa ON pa.performer_id = p.id
+	LEFT JOIN albums a ON a.id = pa.album_id WHERE album_release_year BETWEEN '01.01.2020' and '31.12.2020');
 
 --названия сборников, в которых присутствует конкретный исполнитель (выберите сами);
 SELECT  DISTINCT mt.name  FROM tracks t
@@ -49,8 +49,9 @@ LEFT JOIN performers p ON p.id = pa.performer_id
 WHERE t.length = (SELECT min (t.length) FROM tracks t);
 
 --название альбомов, содержащих наименьшее количество треков
-SELECT count(t.id), a.name FROM tracks t
-LEFT JOIN albums a ON a.id = t.album_id
-GROUP BY a.id
-HAVING count(t.id) = 1;
+SELECT DISTINCT a.name FROM albums a
+LEFT JOIN tracks t ON a.id = t.album_id
+WHERE t.album_id IN (
+	SELECT album_id FROM tracks t GROUP BY album_id	HAVING count(t.id) = (
+		SELECT count(t.id) FROM tracks t GROUP BY album_id ORDER BY count LIMIT 1)) ORDER BY a.name;
 
